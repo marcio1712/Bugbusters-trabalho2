@@ -124,11 +124,5 @@ Este estágio é responsável pela execução do SonarQube, com objetivo de gara
 ### Selenium 🐍
 Por fim, neste estágio é realizada a execução dos testes de requisitos funcionais, a fim de garantir que os mesmos sejam garantidos na medida do desenvolvimento do projeto.
 
-## Equipe 👥
----
-- [Beatriz Dellatorre](https://github.com/BeaDella)
-- [Bruno Cotelo](https://github.com/brunoCotelo)
-- [Denerson Eduardo](https://github.com/Denerson28)
-- [Luana Vidal Leão](https://github.com/LuanaVidalLeao)
-- [Mairon Azevedo](https://github.com/maironAzevedo)
+
 
