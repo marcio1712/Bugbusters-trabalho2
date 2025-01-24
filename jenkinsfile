@@ -1,0 +1,91 @@
+pipeline {
+    agent { label 'master' }
+    options {
+	  timeout(time: 1, unit: 'DAYS')
+        //Quantos builds ele deve mostrar no histórico
+		buildDiscarder(logRotator(numToKeepStr: '3', artifactNumToKeepStr: '3'))
+
+        //Pular checkout padrão
+        skipDefaultCheckout()
+    }
+    environment {
+        MAVEN = tool 'maven-compiler'
+        SONAR_TOKEN = 'sqa_3501f9a209f64a589410a773f33908dbb3f7b56e'
+
+		buildAborted = false		
+    }
+    stages {
+        stage('Compile') {
+            steps {
+				catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+					script {						
+						//pré-build do projeto antes de levantar dados para o sonar
+						try {
+							bat """
+								cd trabalho-pratico-grupo-trabalho-bandejao
+								cd api-spring
+								${env.MAVEN}\\bin\\mvn package
+							"""
+						} catch (Exception e) {
+							buildAborted = true
+							error 'Erro na compilação: ' + e.toString()
+						}
+					}
+				}
+			}
+        }
+        stage('Sonar') {
+			when {
+                expression {
+                    return !buildAborted.toBoolean()
+                }
+            }
+            steps {
+                script {
+                    catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    	bat label: "Jacoco-Prepare-Agent", script: """
+                        	cd trabalho-pratico-grupo-trabalho-bandejao
+							cd api-spring
+                        	${env.MAVEN}\\bin\\mvn jacoco:prepare-agent
+                        """
+
+                        bat label: "Jacoco-Report", script: """
+                        	cd trabalho-pratico-grupo-trabalho-bandejao
+							cd api-spring
+                        	${env.MAVEN}\\bin\\mvn jacoco:report
+                        """
+
+                        bat label: "Sonar-Scanner", script: """
+                        	cd trabalho-pratico-grupo-trabalho-bandejao
+							cd api-spring
+                        	${env.MAVEN}\\bin\\mvn sonar:sonar -Dsonar.token=${env.SONAR_TOKEN}  -Dsonar.projectName=Spring-Api
+                        """
+                    }
+                }
+            }
+        }
+        stage('Selenium') {
+        	when {
+        		expression {
+        			return !buildAborted.toBoolean()
+        		}
+        	}
+			steps {
+			    script {
+			        catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {  
+						bat """
+							cd trabalho-pratico-grupo-trabalho-bandejao
+							cd selenium
+							python index.py
+						"""
+    			    }
+			    }
+			} 
+		}
+    }
+	post {
+		always {
+			archiveArtifacts artifacts: 'trabalho-pratico-grupo-trabalho-bandejao\\selenium\\log_execucao_testes.log', fingerprint: true
+		}
+    }
+}
